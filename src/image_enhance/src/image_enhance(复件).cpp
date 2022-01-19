@@ -1,6 +1,11 @@
 #include <ros/ros.h>
+#include <image_transport/image_transport.h>
+#include <opencv2/highgui/highgui.hpp>
+#include "opencv2/imgproc/imgproc.hpp"
+#include "opencv2/calib3d/calib3d.hpp"
 #include <cv_bridge/cv_bridge.h>
 #include <sensor_msgs/CameraInfo.h>
+#include "opencv2/imgproc/detail/distortion_model.hpp"
 
 #define _NODE_NAME_ "image_enhancement"
 
@@ -15,10 +20,9 @@ private:
 	bool is_show_result_;
 	bool image_ok_;
 	int frame_rate_;
-	int mode_;
-	//0 for 基于直方图均衡化的图像增强 
-	//1 for 基于对数Log变换的图像增强
-	//2 for 基于伽马变换的图像增强
+	int mode_;			//0 for 基于直方图均衡化的图像增强 
+						//1 for 基于对数Log变换的图像增强
+						//2 for 基于伽马变换的图像增强
 	cv_bridge::CvImagePtr cv_ptr_;
 	ros::Timer timer_;
 	
@@ -50,13 +54,12 @@ bool ImageEnhancement::init()
 	ros::NodeHandle nh, nh_private("~");
 	nh_private.param<std::string>("image_topic", image_topic_, "");
 	nh_private.param<int>("frame_rate",frame_rate_,30);
-	nh_private.param<int>("mode",mode_,0);
-
+	nh_private.param<int>("mode_",mode_,1);
+	nh_private.param<bool>("is_show_result",is_show_result_,false);
 	image_ok_ = false;
 	enhance_image_pub_ = nh.advertise<sensor_msgs::Image>("/image_enhancement", 1);
-
-	image_sub_ = nh.subscribe(image_topic_, 1, &ImageEnhancement::loadimage, this);
 	
+	image_sub_ = nh.subscribe(image_topic_, 1, &ImageEnhancement::loadimage, this);
 	if(mode_ == 0)
 		timer_ = nh.createTimer(ros::Duration(0.1), &ImageEnhancement::enhancepub0, this);
 	else if(mode_ == 1)
@@ -64,7 +67,7 @@ bool ImageEnhancement::init()
 	else if(mode_ == 2)
 		timer_ = nh.createTimer(ros::Duration(0.1), &ImageEnhancement::enhancepub2, this);
 	else
-		ROS_ERROR("none mode is starting!");
+		ROS_ERROR("mode input wrong!");
 	ROS_INFO("image_enhancement initial ok.");
 }
 
@@ -85,15 +88,13 @@ void ImageEnhancement::enhancepub0(const ros::TimerEvent&)
 		return;
 	}
 	else
-		ROS_INFO("[%s]: image enhancement start! mode:0",_NODE_NAME_);
+		ROS_INFO("[%s]: image enhancement start!",_NODE_NAME_);
 	static int width, height;
 	width = cv_ptr_->image.cols;
 	height = cv_ptr_->image.rows;
-
 	cv::Mat enhanced_image(height, width, CV_8UC3);
 	enhanced_image.setTo(0);
 	cv_ptr_->image.copyTo(enhanced_image(Rect(0, 0, width, height)));
-
 	cv::Mat imageRGB[3];
 	split(enhanced_image, imageRGB);
 	for (int i=0; i<3; ++i)
@@ -101,7 +102,6 @@ void ImageEnhancement::enhancepub0(const ros::TimerEvent&)
         equalizeHist(imageRGB[i], imageRGB[i]);
     }
     merge(imageRGB, 3, enhanced_image);
-
     sensor_msgs::ImagePtr imageMsg = cv_bridge::CvImage(std_msgs::Header(), "bgr8", enhanced_image).toImageMsg();
 	imageMsg->header.frame_id = std::string("enhance image");
 	imageMsg->header.stamp = ros::Time::now();
@@ -117,7 +117,7 @@ void ImageEnhancement::enhancepub1(const ros::TimerEvent&)
 		return;
 	}
 	else
-		ROS_INFO("[%s]: image enhancement start! mode:1",_NODE_NAME_);
+		ROS_INFO("[%s]: image enhancement start!",_NODE_NAME_);
 	static int width, height;
 	width = cv_ptr_->image.cols;
 	height = cv_ptr_->image.rows;
@@ -154,7 +154,7 @@ void ImageEnhancement::enhancepub2(const ros::TimerEvent&)
 		return;
 	}
 	else
-		ROS_INFO("[%s]: image enhancement start! mode:2",_NODE_NAME_);
+		ROS_INFO("[%s]: image enhancement start!",_NODE_NAME_);
 	static int width, height;
 	width = cv_ptr_->image.cols;
 	height = cv_ptr_->image.rows;
