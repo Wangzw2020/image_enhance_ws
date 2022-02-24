@@ -14,6 +14,7 @@ private:
 	std::string image_topic_;
 	bool is_show_result_;
 	bool image_ok_;
+	bool image_enhanced_;
 	int frame_rate_;
 	int mode_;
 	//0 for 基于直方图均衡化的图像增强 
@@ -53,16 +54,17 @@ bool ImageEnhancement::init()
 	nh_private.param<int>("mode",mode_,0);
 
 	image_ok_ = false;
+	image_enhanced_ = false;
 	enhance_image_pub_ = nh.advertise<sensor_msgs::Image>("/image_enhancement", 1);
 
 	image_sub_ = nh.subscribe(image_topic_, 1, &ImageEnhancement::loadimage, this);
 	
 	if(mode_ == 0)
-		timer_ = nh.createTimer(ros::Duration(0.1), &ImageEnhancement::enhancepub0, this);
+		timer_ = nh.createTimer(ros::Duration(0.01), &ImageEnhancement::enhancepub0, this);
 	else if(mode_ == 1)
-		timer_ = nh.createTimer(ros::Duration(0.1), &ImageEnhancement::enhancepub1, this);
+		timer_ = nh.createTimer(ros::Duration(0.01), &ImageEnhancement::enhancepub1, this);
 	else if(mode_ == 2)
-		timer_ = nh.createTimer(ros::Duration(0.1), &ImageEnhancement::enhancepub2, this);
+		timer_ = nh.createTimer(ros::Duration(0.01), &ImageEnhancement::enhancepub2, this);
 	else
 		ROS_ERROR("none mode is starting!");
 	ROS_INFO("image_enhancement initial ok.");
@@ -75,6 +77,7 @@ void ImageEnhancement::loadimage(const sensor_msgs::ImageConstPtr& msg)
 	cv = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8);
 	cv_ptr_ = cv;
 	image_ok_ = true;
+	image_enhanced_ = false;
 }
 
 void ImageEnhancement::enhancepub0(const ros::TimerEvent&)
@@ -84,8 +87,14 @@ void ImageEnhancement::enhancepub0(const ros::TimerEvent&)
 		ROS_ERROR("[%s]: no image input!",_NODE_NAME_);
 		return;
 	}
+	else if (image_enhanced_ == true)
+	{
+		ROS_INFO("[%s]: waiting for new image!",_NODE_NAME_);
+		return;
+	}
 	else
 		ROS_INFO("[%s]: image enhancement start! mode:0",_NODE_NAME_);
+		
 	static int width, height;
 	width = cv_ptr_->image.cols;
 	height = cv_ptr_->image.rows;
@@ -107,6 +116,8 @@ void ImageEnhancement::enhancepub0(const ros::TimerEvent&)
 	imageMsg->header.stamp = ros::Time::now();
 	enhance_image_pub_.publish(imageMsg);
 	ROS_INFO("[%s]: image enhancement done!",_NODE_NAME_);
+	
+	image_enhanced_ = true;
 }
 
 void ImageEnhancement::enhancepub1(const ros::TimerEvent&)
@@ -116,8 +127,14 @@ void ImageEnhancement::enhancepub1(const ros::TimerEvent&)
 		ROS_ERROR("[%s]: no image input!",_NODE_NAME_);
 		return;
 	}
+	else if (image_enhanced_ == true)
+	{
+		ROS_INFO("[%s]: waiting for new image!",_NODE_NAME_);
+		return;
+	}
 	else
-		ROS_INFO("[%s]: image enhancement start! mode:1",_NODE_NAME_);
+		ROS_INFO("[%s]: image enhancement start! mode:0",_NODE_NAME_);
+		
 	static int width, height;
 	width = cv_ptr_->image.cols;
 	height = cv_ptr_->image.rows;
@@ -144,6 +161,8 @@ void ImageEnhancement::enhancepub1(const ros::TimerEvent&)
 	imageMsg->header.stamp = ros::Time::now();
 	enhance_image_pub_.publish(imageMsg);
 	ROS_INFO("[%s]: image enhancement done!",_NODE_NAME_);
+	
+	image_enhanced_ = true;
 }
 
 void ImageEnhancement::enhancepub2(const ros::TimerEvent&)
@@ -153,8 +172,14 @@ void ImageEnhancement::enhancepub2(const ros::TimerEvent&)
 		ROS_ERROR("[%s]: no image input!",_NODE_NAME_);
 		return;
 	}
+	else if (image_enhanced_ == true)
+	{
+		ROS_INFO("[%s]: waiting for new image!",_NODE_NAME_);
+		return;
+	}
 	else
-		ROS_INFO("[%s]: image enhancement start! mode:2",_NODE_NAME_);
+		ROS_INFO("[%s]: image enhancement start! mode:0",_NODE_NAME_);
+	
 	static int width, height;
 	width = cv_ptr_->image.cols;
 	height = cv_ptr_->image.rows;
@@ -186,6 +211,8 @@ void ImageEnhancement::enhancepub2(const ros::TimerEvent&)
 	imageMsg->header.stamp = ros::Time::now();
 	enhance_image_pub_.publish(imageMsg);
 	ROS_INFO("[%s]: image enhancement done!",_NODE_NAME_);
+	
+	image_enhanced_ = true;
 }
 
 
