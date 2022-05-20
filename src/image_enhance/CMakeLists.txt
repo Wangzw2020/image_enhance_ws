@@ -25,18 +25,11 @@ include_directories(
 add_executable(
 	${PROJECT_NAME}_node src/${PROJECT_NAME}.cpp
 	src/util.cpp
-    src/AINDANE.cpp
     src/WTHE.cpp
-    src/GCEHistMod.cpp
     src/LDR.cpp
     src/AGCWD.cpp
     src/AGCIE.cpp
     src/IAGCWD.cpp
-    src/Ying_2017_CAIP.cpp
-    src/CEusingLuminanceAdaptation.cpp
-    src/adaptiveImageEnhancement.cpp
-    src/JHE.cpp
-    src/SEF.cpp
 )
 add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(
